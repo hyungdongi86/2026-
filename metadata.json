@@ -1,0 +1,6 @@
+{
+  "name": "우리반 성적 관리",
+  "description": "학생 성적 조회 및 교사 대시보드 성적 관리 웹 애플리케이션 (구글 스프레드시트 연동 지원)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
