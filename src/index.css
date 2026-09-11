@@ -21,16 +21,45 @@
     display: none !important;
   }
 
+  /* When printing from Auth Code modal or Curriculum Plan modal:
+     COMPLETELY hide #root so the main dashboard, tables, and other pages NEVER appear in print output */
+  body.print-auth-modal-active #root,
+  body.print-modal-active #root {
+    display: none !important;
+  }
+
+  body.print-auth-modal-active,
+  body.print-modal-active {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.print-auth-modal-active .auth-print-portal,
+  body.print-modal-active .print-portal-container,
   .print-modal-container {
+    display: block !important;
     position: static !important;
     inset: auto !important;
     background: transparent !important;
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
     box-shadow: none !important;
     border: none !important;
+  }
+
+  body.print-auth-modal-active .auth-print-card,
+  body.print-modal-active .print-modal-box {
+    position: static !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
   }
 
   .print-avoid-break {

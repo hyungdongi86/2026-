@@ -73,6 +73,11 @@ export class StorageService {
     return INITIAL_STUDENTS;
   }
 
+  static restoreInitialStudents(): Student[] {
+    this.saveStudents(INITIAL_STUDENTS);
+    return INITIAL_STUDENTS;
+  }
+
   static saveStudents(students: Student[]): void {
     try {
       // Always exclude any demo student
@@ -195,9 +200,23 @@ export class StorageService {
         const fetchedStudents: Student[] = Array.isArray(data.students) ? data.students : [];
         const fetchedGrades: GradeRecord[] = Array.isArray(data.grades) ? data.grades : [];
 
+        // 시트에서 가져온 학생 명단이 비어있는 경우, 기존 학생 명단을 보존
+        const currentLocalStudents = this.getStudents();
+        const effectiveStudents =
+          fetchedStudents.length > 0
+            ? fetchedStudents
+            : (currentLocalStudents.length > 0 ? currentLocalStudents : INITIAL_STUDENTS);
+
         if (fetchedStudents.length > 0) {
           this.saveStudents(fetchedStudents);
+        } else {
+          // 구글 시트가 비어있을 경우, 기존 23명 학생 명단을 구글 시트에 자동 푸시하여 시트 초기화 지원
+          this.saveStudents(effectiveStudents);
+          this.pushToGas(cleanUrl, effectiveStudents, fetchedGrades.length > 0 ? fetchedGrades : this.getGrades()).catch(
+            (e) => console.warn('Auto seed Google Sheet with students failed:', e)
+          );
         }
+
         if (fetchedGrades.length > 0) {
           this.saveGrades(fetchedGrades);
         }
@@ -207,11 +226,16 @@ export class StorageService {
         currentSettings.lastSyncTime = new Date().toLocaleString('ko-KR');
         this.saveSettings(currentSettings);
 
+        const returnMessage =
+          fetchedStudents.length > 0
+            ? `구글 시트에서 학생 ${fetchedStudents.length}명, 성적 ${fetchedGrades.length}건을 성공적으로 불러왔습니다.`
+            : `구글 시트에 학생 데이터가 비어있어, 기존 ${effectiveStudents.length}명 학생 명단을 유지하고 구글 시트로 자동 저장했습니다.`;
+
         return {
           success: true,
-          message: `구글 시트에서 학생 ${fetchedStudents.length}명, 성적 ${fetchedGrades.length}건을 성공적으로 불러왔습니다.`,
-          students: fetchedStudents,
-          grades: fetchedGrades,
+          message: returnMessage,
+          students: effectiveStudents,
+          grades: fetchedGrades.length > 0 ? fetchedGrades : this.getGrades(),
         };
       } else {
         return { success: false, message: data.message || '데이터 불러오기 실패' };

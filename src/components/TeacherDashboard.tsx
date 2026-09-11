@@ -9,6 +9,7 @@ import {
   PERFORMANCE_SCORE_MAP,
 } from '../types';
 import { StorageService } from '../services/storageService';
+import { INITIAL_STUDENTS, INITIAL_GRADES } from '../data/initialData';
 import { findCurriculumPlan } from '../data/curriculumPlans';
 import { GradeFormModal } from './GradeFormModal';
 import { StudentManagementModal } from './StudentManagementModal';
@@ -42,6 +43,7 @@ import {
   Layers,
   Save,
   ChevronRight,
+  RotateCcw,
 } from 'lucide-react';
 
 interface TeacherDashboardProps {
@@ -87,6 +89,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printTargetStudentId, setPrintTargetStudentId] = useState<string | null>(null);
   const [isCurriculumModalOpen, setIsCurriculumModalOpen] = useState(false);
   const [isUnenteredModalOpen, setIsUnenteredModalOpen] = useState(false);
 
@@ -523,9 +526,13 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setIsSyncing(true);
     setSyncStatus(null);
     const result = await StorageService.pullFromGas(settings.gasUrl);
-    if (result.success && result.students && result.grades) {
-      onUpdateStudents(result.students);
-      onUpdateGrades(result.grades);
+    if (result.success) {
+      if (result.students && result.students.length > 0) {
+        onUpdateStudents(result.students);
+      }
+      if (result.grades && result.grades.length > 0) {
+        onUpdateGrades(result.grades);
+      }
       setSyncStatus({ success: true, message: result.message });
     } else {
       setSyncStatus({ success: false, message: result.message });
@@ -533,19 +540,65 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setIsSyncing(false);
   };
 
-  // Reset to Sample Data
+  // Restore 23 Initial Students (부천덕산초 6-1 23명)
+  const handleRestoreInitialStudents = () => {
+    setConfirmState({
+      isOpen: true,
+      title: '23명 학생 명단 복구',
+      message:
+        '부천덕산초 6학년 1반 23명 학생 명단을 다시 불러오시겠습니까? 연동된 구글 시트가 있다면 구글 시트에도 23명 명단이 자동으로 저장됩니다.',
+      confirmLabel: '23명 명단 복구',
+      variant: 'info',
+      onConfirm: async () => {
+        onUpdateStudents(INITIAL_STUDENTS);
+        StorageService.saveStudents(INITIAL_STUDENTS);
+        if (settings.gasUrl) {
+          setIsSyncing(true);
+          try {
+            const pushRes = await StorageService.pushToGas(
+              settings.gasUrl,
+              INITIAL_STUDENTS,
+              grades.length > 0 ? grades : INITIAL_GRADES
+            );
+            setSyncStatus(pushRes);
+            alert(
+              '23명의 학생 명단이 성공적으로 복구되었으며, 연동된 구글 스프레드시트에도 즉시 동기화(저장)되었습니다.'
+            );
+          } catch {
+            alert('23명의 학생 명단이 로컬에 복구되었습니다.');
+          } finally {
+            setIsSyncing(false);
+          }
+        } else {
+          alert('부천덕산초 6학년 1반 23명의 학생 명단이 성공적으로 복구되었습니다.');
+        }
+      },
+    });
+  };
+
+  // Reset to Initial Data (23 Students + Default Evaluations)
   const handleResetSampleData = () => {
     setConfirmState({
       isOpen: true,
-      title: '샘플 데이터로 초기화',
-      message: '샘플 데이터(학생 5명 및 성적 기록)로 초기화하시겠습니까? 기존 데이터가 대체됩니다.',
+      title: '23명 기본 데이터로 초기화',
+      message:
+        '부천덕산초 6학년 1반 학생 23명 명단 및 기본 평가 기록으로 초기화하시겠습니까? (연동된 구글 시트에도 자동 저장됩니다)',
       confirmLabel: '초기화',
       variant: 'warning',
-      onConfirm: () => {
+      onConfirm: async () => {
         const resetRes = StorageService.resetToSampleData();
         onUpdateStudents(resetRes.students);
         onUpdateGrades(resetRes.grades);
         onUpdateSettings(resetRes.settings);
+        if (settings.gasUrl) {
+          setIsSyncing(true);
+          try {
+            await StorageService.pushToGas(settings.gasUrl, resetRes.students, resetRes.grades);
+          } finally {
+            setIsSyncing(false);
+          }
+        }
+        alert('부천덕산초 6학년 1반 23명 학생 명단과 기본 데이터로 초기화되었습니다.');
       },
     });
   };
@@ -687,9 +740,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         <div className="flex items-center gap-2 ml-auto">
           <button
             onClick={() => confirmIfDirty(handleResetSampleData)}
-            className="text-xs text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-xl hover:bg-red-50 border border-slate-200 transition font-medium"
+            className="text-xs text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-xl hover:bg-red-50 border border-slate-200 transition font-medium cursor-pointer"
+            title="부천덕산초 6학년 1반 23명 명단 및 기본 성적으로 초기화합니다."
           >
-            샘플 데이터 초기화
+            기본 데이터(23명) 초기화
           </button>
         </div>
       </div>
@@ -1054,9 +1108,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => setIsPrintModalOpen(true)}
+                onClick={handleRestoreInitialStudents}
+                className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                title="부천덕산초 6학년 1반 23명 학생 명단을 다시 불러옵니다."
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>23명 명단 복구</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPrintTargetStudentId(null);
+                  setIsPrintModalOpen(true);
+                }}
                 className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-sm transition"
               >
                 <Printer className="w-4 h-4" />
@@ -1072,6 +1138,25 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </button>
             </div>
           </div>
+
+          {students.length === 0 && (
+            <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
+                <Users className="w-6 h-6" />
+              </div>
+              <h4 className="text-base font-bold text-emerald-950">등록된 학생 명단이 없습니다.</h4>
+              <p className="text-xs text-emerald-800 max-w-lg mx-auto">
+                구글 스프레드시트 연동 시 비어있는 시트에서 데이터를 불러와 23명의 학생 명단이 비워졌을 수 있습니다. 아래 버튼을 클릭하면 부천덕산초 6학년 1반 23명 학생 명단을 즉시 다시 불러오고 구글 시트에도 자동으로 저장합니다.
+              </p>
+              <button
+                onClick={handleRestoreInitialStudents}
+                className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow transition inline-flex items-center gap-2 cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>23명 학생 명단 즉시 복구 및 구글 시트 저장</span>
+              </button>
+            </div>
+          )}
 
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="overflow-x-auto">
@@ -1100,6 +1185,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <td className="p-4 text-slate-600 max-w-xs truncate">{stu.note || '-'}</td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center space-x-1">
+                          <button
+                            onClick={() => {
+                              setPrintTargetStudentId(stu.id);
+                              setIsPrintModalOpen(true);
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                            title={`${stu.name} 학생 개인 인증코드 인쇄`}
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => handleEditStudent(stu)}
                             className="p-1.5 text-slate-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
@@ -1240,6 +1335,26 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <span>시트에서 가져오기 (Pull)</span>
                     </button>
                   </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-emerald-200 shadow-2xs space-y-1.5 mt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>부천덕산초 6-1 (23명) 명단 복구 및 시트 전송</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      구글 시트 연동 후 시트가 비어있어 학생 명단이 안 보일 때, 아래 버튼을 누르면 23명 명단을 앱에 불러오고 구글 시트에도 즉시 저장합니다.
+                    </p>
+                    <button
+                      onClick={handleRestoreInitialStudents}
+                      disabled={isSyncing}
+                      className="w-full py-2 px-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>23명 명단 복구 및 구글 시트에 즉시 저장</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Status Message */}
@@ -1287,10 +1402,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
       <AuthCodePrintModal
         isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
+        onClose={() => {
+          setIsPrintModalOpen(false);
+          setPrintTargetStudentId(null);
+        }}
         students={students}
         schoolName={settings.schoolName}
         className={settings.className}
+        initialSelectedStudentId={printTargetStudentId}
       />
 
       <BatchGradeModal

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StorageService } from './services/storageService';
 import { Student, GradeRecord, AppSettings, UserMode } from './types';
+import { INITIAL_STUDENTS } from './data/initialData';
 import { Header } from './components/Header';
 import { StudentLogin } from './components/StudentLogin';
 import { StudentDashboard } from './components/StudentDashboard';
@@ -27,7 +28,8 @@ export default function App() {
     const loadedGrades = StorageService.getGrades();
     const loadedSettings = StorageService.getSettings();
 
-    setStudents(loadedStudents);
+    const effectiveStudents = loadedStudents.length > 0 ? loadedStudents : INITIAL_STUDENTS;
+    setStudents(effectiveStudents);
     setGrades(loadedGrades);
     setSettings(loadedSettings);
 
@@ -36,9 +38,13 @@ export default function App() {
       setIsSyncing(true);
       StorageService.pullFromGas(loadedSettings.gasUrl)
         .then((res) => {
-          if (res.success && res.students && res.grades) {
-            setStudents(res.students);
-            setGrades(res.grades);
+          if (res.success) {
+            if (res.students && res.students.length > 0) {
+              setStudents(res.students);
+            }
+            if (res.grades && res.grades.length > 0) {
+              setGrades(res.grades);
+            }
           }
         })
         .finally(() => setIsSyncing(false));
@@ -77,9 +83,13 @@ export default function App() {
     }
     setIsSyncing(true);
     const res = await StorageService.pullFromGas(settings.gasUrl);
-    if (res.success && res.students && res.grades) {
-      setStudents(res.students);
-      setGrades(res.grades);
+    if (res.success) {
+      if (res.students && res.students.length > 0) {
+        setStudents(res.students);
+      }
+      if (res.grades && res.grades.length > 0) {
+        setGrades(res.grades);
+      }
       setIsTeacherDirty(false);
     }
     setIsSyncing(false);

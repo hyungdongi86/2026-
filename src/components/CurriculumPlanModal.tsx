@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CURRICULUM_EVAL_PLANS, CurriculumPlanItem } from '../data/curriculumPlans';
 import { SUBJECT_LIST } from '../types';
 import { X, BookOpen, Search, Printer, CheckCircle2, FileText, Sparkles, Filter } from 'lucide-react';
@@ -12,7 +13,18 @@ export const CurriculumPlanModal: React.FC<CurriculumPlanModalProps> = ({ isOpen
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('print-modal-active');
+    } else {
+      document.body.classList.remove('print-modal-active');
+    }
+    return () => {
+      document.body.classList.remove('print-modal-active');
+    };
+  }, [isOpen]);
+
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const filteredPlans = CURRICULUM_EVAL_PLANS.filter((item) => {
     const matchSubject = selectedSubject === 'all' || item.subject === selectedSubject;
@@ -31,11 +43,11 @@ export const CurriculumPlanModal: React.FC<CurriculumPlanModalProps> = ({ isOpen
     window.print();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden relative max-h-[92vh] flex flex-col">
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn print-portal-container print:static print:p-0 print:bg-white print:z-auto print-modal-container">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden relative max-h-[92vh] flex flex-col print-modal-box print:max-w-none print:max-h-none print:shadow-none print:border-none print:p-0 print:overflow-visible print:static">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-800 to-teal-800 p-5 text-white flex items-center justify-between shrink-0">
+        <div className="bg-gradient-to-r from-emerald-800 to-teal-800 p-5 text-white flex items-center justify-between shrink-0 print:hidden">
           <div className="flex items-center space-x-2.5">
             <BookOpen className="w-5 h-5 text-emerald-200" />
             <div>
@@ -218,7 +230,7 @@ export const CurriculumPlanModal: React.FC<CurriculumPlanModalProps> = ({ isOpen
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 print:hidden">
           <div className="text-xs text-slate-500">
             초등 교육과정 연계 평가계획서 (2026학년도 2학기 기준)
           </div>
@@ -233,4 +245,6 @@ export const CurriculumPlanModal: React.FC<CurriculumPlanModalProps> = ({ isOpen
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

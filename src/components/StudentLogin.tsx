@@ -70,7 +70,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="예: 김민채"
+                placeholder="예: 황형동"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-medium transition"
@@ -87,7 +87,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="예: DS2194"
+                placeholder="예: DS0000"
                 value={authCode}
                 onChange={(e) => setAuthCode(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-semibold tracking-wider text-slate-800 transition uppercase"
