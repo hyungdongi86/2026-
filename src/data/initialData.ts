@@ -59,7 +59,7 @@ export const INITIAL_GRADES: GradeRecord[] = [
     score: 95,
     maxScore: 100,
     evalArea: '읽기',
-    evalElement: '글과 자료를 보고 전달하고자 하는 주장과 이유, 근거 파악하기',
+    evalElement: '글과 자료를 보고 주장과 근거를 파악하며 타당성과 표현의 적절성 평가하기',
     teacherComment: '논술형 문제에서 핵심 문맥을 잘 짚어 서술함.',
   },
   {

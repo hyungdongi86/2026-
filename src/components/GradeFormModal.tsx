@@ -222,85 +222,156 @@ export const GradeFormModal: React.FC<GradeFormModalProps> = ({
             </div>
           </div>
 
-          {/* Evaluation Area (Dropdown per subject) */}
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5">
-            <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-emerald-600" />
-              <span>평가 영역 (드롭다운)</span>
-              <span className="text-[10px] text-emerald-700 font-normal">({subject} 교과 세부 영역)</span>
-            </label>
-            <select
-              value={evalArea}
-              onChange={(e) => handleEvalAreaChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              {currentEvalAreas.map((area) => (
-                <option key={area} value={area}>
-                  {area}
-                </option>
-              ))}
-            </select>
-            {/* Quick area pill buttons */}
-            {currentEvalAreas.length > 1 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
+          {/* Evaluation Area & Connected Element */}
+          {subject === '국어' ? (
+            /* 국어 과목: 평가영역당 1회 평가 - 영역 및 평가요소 단일 통합 드롭다운 */
+            <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-emerald-700" />
+                  <span>국어 평가 영역 및 연계 평가요소 (통합)</span>
+                </label>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-extrabold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-emerald-700" />
+                  영역당 1개 단일 평가
+                </span>
+              </div>
+
+              <select
+                value={evalArea}
+                onChange={(e) => handleEvalAreaChange(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-950 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+              >
+                {currentEvalAreas.map((area) => {
+                  const elem = SUBJECT_EVAL_ELEMENTS['국어']?.[area]?.[0] || '';
+                  return (
+                    <option key={area} value={area}>
+                      [{area}] {elem}
+                    </option>
+                  );
+                })}
+              </select>
+
+              {/* Quick Area Buttons */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {currentEvalAreas.map((area) => (
                   <button
                     key={area}
                     type="button"
                     onClick={() => handleEvalAreaChange(area)}
-                    className={`text-[11px] px-2.5 py-0.5 rounded-md font-medium border transition cursor-pointer ${
+                    className={`text-[11px] px-3 py-1 rounded-lg font-bold border transition cursor-pointer ${
                       evalArea === area
-                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                        : 'bg-white text-emerald-900 border-emerald-200 hover:bg-emerald-50'
                     }`}
                   >
                     {area}
                   </button>
                 ))}
               </div>
-            )}
-          </div>
 
-          {/* Connected Evaluation Element (Dropdown Only) */}
-          <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-emerald-700" />
-                <span>연계 평가 요소</span>
-              </label>
-              <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-emerald-600" />
-                평가계획서 연동
-              </span>
-            </div>
-
-            {currentPlan && (
-              <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200 text-[11px] space-y-1">
-                <div className="flex items-center flex-wrap gap-2 text-emerald-900 font-bold">
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px]">{currentPlan.month}</span>
-                  <span>단원: {currentPlan.unitName}</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{currentPlan.standardCode}</span>
+              {currentPlan && (
+                <div className="bg-white/95 p-3 rounded-xl border border-emerald-200 text-[11px] space-y-1 mt-1">
+                  <div className="flex items-center flex-wrap gap-2 text-emerald-900 font-bold">
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px]">{currentPlan.month}</span>
+                    <span>단원: {currentPlan.unitName}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{currentPlan.standardCode}</span>
+                  </div>
+                  <div className="text-slate-700 text-[11px]">
+                    <span className="font-semibold text-emerald-900">통합 평가요소: </span>
+                    {evalElement}
+                  </div>
+                  {currentPlan.method && (
+                    <div className="text-slate-600 text-[10.5px]">
+                      <strong className="text-slate-700">평가방법:</strong> {currentPlan.method}
+                    </div>
+                  )}
                 </div>
-                {currentPlan.method && (
-                  <div className="text-slate-600 text-[10.5px]">
-                    <strong className="text-slate-700">평가방법:</strong> {currentPlan.method}
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Evaluation Area (Dropdown per subject) */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5">
+                <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-emerald-600" />
+                  <span>평가 영역 (드롭다운)</span>
+                  <span className="text-[10px] text-emerald-700 font-normal">({subject} 교과 세부 영역)</span>
+                </label>
+                <select
+                  value={evalArea}
+                  onChange={(e) => handleEvalAreaChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {currentEvalAreas.map((area) => (
+                    <option key={area} value={area}>
+                      {area}
+                    </option>
+                  ))}
+                </select>
+                {/* Quick area pill buttons */}
+                {currentEvalAreas.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {currentEvalAreas.map((area) => (
+                      <button
+                        key={area}
+                        type="button"
+                        onClick={() => handleEvalAreaChange(area)}
+                        className={`text-[11px] px-2.5 py-0.5 rounded-md font-medium border transition cursor-pointer ${
+                          evalArea === area
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {area}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-            )}
 
-            <select
-              value={evalElement}
-              onChange={(e) => setEvalElement(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-xs font-semibold text-emerald-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
-            >
-              {currentEvalElements.map((elem, idx) => (
-                <option key={idx} value={elem}>
-                  {elem}
-                </option>
-              ))}
-            </select>
-          </div>
+              {/* Connected Evaluation Element (Dropdown Only) */}
+              <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-emerald-700" />
+                    <span>연계 평가 요소</span>
+                  </label>
+                  <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                    평가계획서 연동
+                  </span>
+                </div>
+
+                {currentPlan && (
+                  <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200 text-[11px] space-y-1">
+                    <div className="flex items-center flex-wrap gap-2 text-emerald-900 font-bold">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px]">{currentPlan.month}</span>
+                      <span>단원: {currentPlan.unitName}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{currentPlan.standardCode}</span>
+                    </div>
+                    {currentPlan.method && (
+                      <div className="text-slate-600 text-[10.5px]">
+                        <strong className="text-slate-700">평가방법:</strong> {currentPlan.method}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <select
+                  value={evalElement}
+                  onChange={(e) => setEvalElement(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-300 text-xs font-semibold text-emerald-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+                >
+                  {currentEvalElements.map((elem, idx) => (
+                    <option key={idx} value={elem}>
+                      {elem}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Performance Rating (4 Levels) */}
           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">

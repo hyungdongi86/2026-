@@ -418,37 +418,61 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                 </select>
               </div>
 
-              {/* Eval Area Preset */}
-              <div className="flex items-center gap-1">
-                <span className="text-slate-500 font-semibold">평가영역:</span>
-                <select
-                  value={batchEvalArea}
-                  onChange={(e) => handleBatchEvalAreaChange(e.target.value)}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-emerald-900 bg-emerald-50/50"
-                >
-                  {(SUBJECT_EVAL_AREAS[batchSubject] || ['기본영역']).map((area) => (
-                    <option key={area} value={area}>
-                      {area}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Eval Area & Element Preset */}
+              {batchSubject === '국어' ? (
+                /* 국어 과목: 1개 통합 드롭다운 (평가영역당 1회 시험·평가결과 산정) */
+                <div className="flex items-center gap-1.5 min-w-[300px] flex-1">
+                  <span className="text-emerald-900 font-bold shrink-0 text-xs">국어 평가영역(통합):</span>
+                  <select
+                    value={batchEvalArea}
+                    onChange={(e) => handleBatchEvalAreaChange(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 text-xs font-bold text-emerald-950 bg-emerald-50 focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+                  >
+                    {(SUBJECT_EVAL_AREAS['국어'] || []).map((area) => {
+                      const elem = SUBJECT_EVAL_ELEMENTS['국어']?.[area]?.[0] || '';
+                      return (
+                        <option key={area} value={area}>
+                          [{area}] {elem}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              ) : (
+                <>
+                  {/* Eval Area Preset */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-500 font-semibold">평가영역:</span>
+                    <select
+                      value={batchEvalArea}
+                      onChange={(e) => handleBatchEvalAreaChange(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-emerald-900 bg-emerald-50/50"
+                    >
+                      {(SUBJECT_EVAL_AREAS[batchSubject] || ['기본영역']).map((area) => (
+                        <option key={area} value={area}>
+                          {area}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Eval Element Preset (Linked with Eval Area) */}
-              <div className="flex items-center gap-1 min-w-[240px] flex-1">
-                <span className="text-slate-500 font-semibold shrink-0">연계 평가요소:</span>
-                <select
-                  value={batchEvalElement}
-                  onChange={(e) => setBatchEvalElement(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 text-xs font-medium text-slate-800 bg-white"
-                >
-                  {(SUBJECT_EVAL_ELEMENTS[batchSubject]?.[batchEvalArea] || []).map((elem, idx) => (
-                    <option key={idx} value={elem}>
-                      {elem}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  {/* Eval Element Preset (Linked with Eval Area) */}
+                  <div className="flex items-center gap-1 min-w-[240px] flex-1">
+                    <span className="text-slate-500 font-semibold shrink-0">연계 평가요소:</span>
+                    <select
+                      value={batchEvalElement}
+                      onChange={(e) => setBatchEvalElement(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 text-xs font-medium text-slate-800 bg-white"
+                    >
+                      {(SUBJECT_EVAL_ELEMENTS[batchSubject]?.[batchEvalArea] || []).map((elem, idx) => (
+                        <option key={idx} value={elem}>
+                          {elem}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
 
               {/* Default Rating Preset */}
               <div className="flex items-center gap-1">
@@ -596,20 +620,32 @@ export const BatchGradeModal: React.FC<BatchGradeModalProps> = ({
                           </select>
                         </td>
 
-                        {/* Eval Element Selector (Dropdown Only) */}
+                        {/* Eval Element Selector */}
                         <td className="p-3">
-                          <select
-                            value={row.evalElement}
-                            disabled={!row.isInclude}
-                            onChange={(e) => handleRowChange(idx, 'evalElement', e.target.value)}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 text-xs font-medium text-slate-800 bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                          >
-                            {availableElements.map((el, eIdx) => (
-                              <option key={eIdx} value={el}>
-                                {el}
-                              </option>
-                            ))}
-                          </select>
+                          {row.subject === '국어' ? (
+                            <div
+                              className="text-xs text-emerald-950 bg-emerald-50/80 px-2.5 py-1.5 rounded-lg border border-emerald-200 font-medium truncate"
+                              title={row.evalElement}
+                            >
+                              <span className="font-bold mr-1 text-emerald-800 text-[10px] bg-emerald-100 px-1 py-0.5 rounded">
+                                통합
+                              </span>
+                              {row.evalElement}
+                            </div>
+                          ) : (
+                            <select
+                              value={row.evalElement}
+                              disabled={!row.isInclude}
+                              onChange={(e) => handleRowChange(idx, 'evalElement', e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-emerald-300 text-xs font-medium text-slate-800 bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                            >
+                              {availableElements.map((el, eIdx) => (
+                                <option key={eIdx} value={el}>
+                                  {el}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </td>
 
                         {/* Performance Rating */}

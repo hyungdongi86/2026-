@@ -5,6 +5,7 @@ import {
   AppSettings,
   SyncResult,
   SUBJECT_LIST,
+  SUBJECT_EVAL_ELEMENTS,
   PerformanceLevel,
   PERFORMANCE_SCORE_MAP,
 } from '../types';
@@ -158,16 +159,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     );
   }, [students, grades]);
 
-  // Active evaluations in current class
+  // Active evaluations in current class (국어는 평가영역당 1개의 평가결과로 산정)
   const activeEvaluations = useMemo(() => {
     const map = new Map<string, { subject: string; evalArea: string; evalElement: string }>();
     grades.forEach((g) => {
-      const key = `${g.subject}:::${g.evalArea}:::${g.evalElement}`;
+      const key =
+        g.subject === '국어'
+          ? `${g.subject}:::${g.evalArea}`
+          : `${g.subject}:::${g.evalArea}:::${g.evalElement}`;
       if (!map.has(key)) {
+        const standardKoreanElem =
+          g.subject === '국어' ? SUBJECT_EVAL_ELEMENTS['국어']?.[g.evalArea]?.[0] : undefined;
         map.set(key, {
           subject: g.subject,
           evalArea: g.evalArea,
-          evalElement: g.evalElement,
+          evalElement: standardKoreanElem || g.evalElement,
         });
       }
     });
@@ -183,7 +189,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             (g) =>
               g.subject === evalItem.subject &&
               g.evalArea === evalItem.evalArea &&
-              g.evalElement === evalItem.evalElement
+              (evalItem.subject === '국어' || g.evalElement === evalItem.evalElement)
           )
           .map((g) => g.studentId || g.studentName)
       );
@@ -306,7 +312,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       studentName: student.name,
       subject: '국어',
       evalArea: '문학',
-      evalElement: '시나 이야기를 읽고 글에 포함한 표현 방식과 그 의미 추론하기',
+      evalElement: SUBJECT_EVAL_ELEMENTS['국어']?.['문학']?.[0] || '시나 이야기를 읽고 표현 방식과 의미를 추론하며 친구들과 의견 나누기',
       performanceRating: '매우잘함',
       score: 100,
       maxScore: 100,
