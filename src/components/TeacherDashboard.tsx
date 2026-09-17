@@ -483,9 +483,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   // GAS Settings Save
   const handleSaveSettings = () => {
+    let cleanGasUrl = gasUrlInput.trim();
+    if (cleanGasUrl) {
+      const validation = StorageService.validateGasUrl(cleanGasUrl);
+      if (!validation.isValid) {
+        alert(`[구글 웹 앱 URL 안내]\n${validation.warning}`);
+        return;
+      }
+      if (validation.normalizedUrl) {
+        cleanGasUrl = validation.normalizedUrl;
+        setGasUrlInput(cleanGasUrl);
+      }
+    }
+
     const updatedSettings: AppSettings = {
       ...settings,
-      gasUrl: gasUrlInput.trim(),
+      gasUrl: cleanGasUrl,
       teacherPassword: teacherPassInput.trim() || '5714',
       schoolName: schoolNameInput.trim() || '우리학교',
       className: classNameInput.trim() || '우리반',
@@ -493,6 +506,27 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     onUpdateSettings(updatedSettings);
     StorageService.saveSettings(updatedSettings);
     alert('설정이 성공적으로 저장되었습니다.');
+  };
+
+  // Disconnect / Clear GAS URL
+  const handleClearGasUrl = () => {
+    if (
+      window.confirm(
+        '구글 시트 연동을 해제하고 로컬 전용 모드로 전환하시겠습니까? (현재 등록된 23명의 학생 및 성적 데이터는 그대로 보존됩니다)'
+      )
+    ) {
+      setGasUrlInput('');
+      const updatedSettings: AppSettings = {
+        ...settings,
+        gasUrl: '',
+      };
+      onUpdateSettings(updatedSettings);
+      StorageService.saveSettings(updatedSettings);
+      setSyncStatus({
+        success: true,
+        message: '구글 시트 연동이 해제되었습니다. 로컬 데이터로 안전하게 유지됩니다.',
+      });
+    }
   };
 
   // Test GAS URL
@@ -1256,9 +1290,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                   onChange={(e) => setGasUrlInput(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  * 구글 시트 [Apps Script]에서 웹 앱 배포 후 발급받은 URL을 입력하세요.
-                </p>
+                <div className="flex items-center justify-between mt-1.5 flex-wrap gap-1">
+                  <p className="text-[11px] text-slate-500">
+                    * 구글 시트 [확장 프로그램] → [Apps Script] → [배포] → [새 배포]에서 발급받은 <span className="font-semibold text-emerald-700">/exec</span> URL을 입력하세요.
+                  </p>
+                  {settings.gasUrl && (
+                    <button
+                      type="button"
+                      onClick={handleClearGasUrl}
+                      className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer underline"
+                      title="연동을 해제하고 브라우저 로컬 모드로 전환합니다."
+                    >
+                      연동 해제 (로컬 모드)
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

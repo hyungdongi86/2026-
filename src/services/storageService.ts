@@ -146,18 +146,65 @@ export class StorageService {
   }
 
   // --- Google Apps Script (GAS) API Sync ---
+  static validateGasUrl(gasUrl: string): { isValid: boolean; warning?: string; normalizedUrl?: string } {
+    if (!gasUrl || !gasUrl.trim()) {
+      return { isValid: false, warning: '구글 앱스 스크립트 배포 URL을 입력해 주세요.' };
+    }
+    let clean = gasUrl.trim();
+
+    // 스프레드시트 문서 주소를 잘못 입력한 경우
+    if (clean.includes('docs.google.com/spreadsheets')) {
+      return {
+        isValid: false,
+        warning:
+          '구글 스프레드시트 문서 주소가 입력되었습니다. 시트 상단 [확장 프로그램] -> [Apps Script] -> [배포] -> [새 배포] -> [웹 앱]에서 발급된 Web App URL(/exec)을 입력해야 합니다.',
+      };
+    }
+
+    // Apps Script 편집기 주소(/edit)인 경우 /exec로 교정
+    if (clean.includes('script.google.com') && clean.endsWith('/edit')) {
+      clean = clean.replace(/\/edit$/, '/exec');
+      return {
+        isValid: true,
+        normalizedUrl: clean,
+        warning: '편집기 주소(/edit)가 배포 주소(/exec)로 자동 보정되었습니다.',
+      };
+    }
+
+    if (!clean.includes('script.google.com/macros/s/')) {
+      return {
+        isValid: false,
+        warning:
+          '올바른 웹 앱 배포 URL 형식이 아닙니다. (예: https://script.google.com/macros/s/.../exec)',
+      };
+    }
+
+    return { isValid: true, normalizedUrl: clean };
+  }
+
   static async testGasUrl(gasUrl: string): Promise<SyncResult> {
     if (!gasUrl || !gasUrl.trim()) {
       return { success: false, message: 'Google Apps Script URL을 입력해주세요.' };
     }
 
+    const validation = this.validateGasUrl(gasUrl);
+    if (!validation.isValid) {
+      return { success: false, message: validation.warning || '유효하지 않은 URL입니다.' };
+    }
+
+    const cleanUrl = validation.normalizedUrl || gasUrl.trim();
+
     try {
-      const cleanUrl = gasUrl.trim();
-      const testUrl = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}action=test`;
+      const testUrl = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}action=test&t=${Date.now()}`;
 
       const response = await fetch(testUrl, { method: 'GET', mode: 'cors' });
       if (!response.ok) {
-        throw new Error(`HTTP 에러: ${response.status}`);
+        const errorMsg =
+          response.status === 404
+            ? '구글 앱스 스크립트 웹 앱을 찾을 수 없습니다 (404 에러). URL 끝이 /exec 로 끝나는지 및 배포가 완료되었는지 확인하세요.'
+            : `구글 시트 연결 실패 (HTTP 상태: ${response.status})`;
+        console.warn(`[GAS Test] ${errorMsg}`);
+        return { success: false, message: errorMsg };
       }
 
       const data = await response.json();
@@ -167,7 +214,7 @@ export class StorageService {
         return { success: false, message: data.message || '구글 시트 연결 실패' };
       }
     } catch (err: any) {
-      console.error('GAS Connection error:', err);
+      console.warn('[GAS Connection warning]', err?.message || err);
       return {
         success: false,
         message: '구글 앱스 스크립트 연결 실패: URL 및 배포 권한("모든 사용자")을 확인하세요.',
@@ -182,17 +229,47 @@ export class StorageService {
     students?: Student[];
     grades?: GradeRecord[];
   }> {
+    const currentLocalStudents = this.getStudents();
+    const currentLocalGrades = this.getGrades();
+
     if (!gasUrl || !gasUrl.trim()) {
-      return { success: false, message: '연동된 구글 앱스 스크립트 URL이 없습니다.' };
+      return {
+        success: false,
+        message: '연동된 구글 앱스 스크립트 URL이 없습니다.',
+        students: currentLocalStudents,
+        grades: currentLocalGrades,
+      };
     }
 
+    const validation = this.validateGasUrl(gasUrl);
+    if (!validation.isValid) {
+      return {
+        success: false,
+        message: validation.warning || '유효한 구글 웹 앱 URL이 아닙니다.',
+        students: currentLocalStudents,
+        grades: currentLocalGrades,
+      };
+    }
+
+    const cleanUrl = validation.normalizedUrl || gasUrl.trim();
+
     try {
-      const cleanUrl = gasUrl.trim();
       const fetchUrl = `${cleanUrl}${cleanUrl.includes('?') ? '&' : '?'}action=fetch&t=${Date.now()}`;
 
       const response = await fetch(fetchUrl, { method: 'GET', cache: 'no-cache' });
       if (!response.ok) {
-        throw new Error(`HTTP status ${response.status}`);
+        const errorMsg =
+          response.status === 404
+            ? '구글 앱스 스크립트 웹 앱을 찾을 수 없습니다(404 에러). 구글 시트 [Apps Script]에서 [배포] -> [새 배포]를 통해 웹 앱 URL(/exec)을 새로 발급받아 입력해주세요.'
+            : `구글 시트 데이터 수신 응답 오류 (HTTP ${response.status})`;
+
+        console.warn(`[GAS Pull] ${errorMsg}`);
+        return {
+          success: false,
+          message: errorMsg,
+          students: currentLocalStudents,
+          grades: currentLocalGrades,
+        };
       }
 
       const data = await response.json();
@@ -201,7 +278,6 @@ export class StorageService {
         const fetchedGrades: GradeRecord[] = Array.isArray(data.grades) ? data.grades : [];
 
         // 시트에서 가져온 학생 명단이 비어있는 경우, 기존 학생 명단을 보존
-        const currentLocalStudents = this.getStudents();
         const effectiveStudents =
           fetchedStudents.length > 0
             ? fetchedStudents
@@ -238,13 +314,20 @@ export class StorageService {
           grades: fetchedGrades.length > 0 ? fetchedGrades : this.getGrades(),
         };
       } else {
-        return { success: false, message: data.message || '데이터 불러오기 실패' };
+        return {
+          success: false,
+          message: data.message || '데이터 불러오기 실패',
+          students: currentLocalStudents,
+          grades: currentLocalGrades,
+        };
       }
     } catch (err: any) {
-      console.error('GAS Pull error:', err);
+      console.warn('[GAS Pull warning]', err?.message || err);
       return {
         success: false,
-        message: '구글 시트 데이터 수신 실패: 웹 앱 URL이 바르게 배포되었는지 확인하세요.',
+        message: '구글 시트 데이터 수신 실패: 웹 앱 URL 및 배포 권한("모든 사용자")을 확인하세요.',
+        students: currentLocalStudents,
+        grades: currentLocalGrades,
       };
     }
   }
@@ -259,6 +342,13 @@ export class StorageService {
       return { success: false, message: '연동된 구글 앱스 스크립트 URL이 없습니다.' };
     }
 
+    const validation = this.validateGasUrl(gasUrl);
+    if (!validation.isValid) {
+      return { success: false, message: validation.warning || '유효하지 않은 URL입니다.' };
+    }
+
+    const cleanUrl = validation.normalizedUrl || gasUrl.trim();
+
     try {
       const payload = {
         action: 'sync',
@@ -272,7 +362,7 @@ export class StorageService {
       };
 
       // CORS 우회를 위해 text/plain 또는 URL encoded 페이로드 호환성 확보
-      const response = await fetch(gasUrl.trim(), {
+      const response = await fetch(cleanUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=utf-8',
@@ -281,7 +371,12 @@ export class StorageService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP status ${response.status}`);
+        const errorMsg =
+          response.status === 404
+            ? '구글 앱스 스크립트 웹 앱을 찾을 수 없습니다(404 에러). 배포 URL을 확인하세요.'
+            : `구글 시트 전송 실패 (HTTP ${response.status})`;
+        console.warn(`[GAS Push] ${errorMsg}`);
+        return { success: false, message: errorMsg };
       }
 
       const data = await response.json();
@@ -300,7 +395,7 @@ export class StorageService {
         return { success: false, message: data.message || '구글 시트 저장 실패' };
       }
     } catch (err: any) {
-      console.error('GAS Push error:', err);
+      console.warn('[GAS Push warning]', err?.message || err);
       return {
         success: false,
         message: '구글 시트 데이터 동기화 중 오류가 발생했습니다.',

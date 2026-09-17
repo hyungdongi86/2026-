@@ -33,21 +33,27 @@ export default function App() {
     setGrades(loadedGrades);
     setSettings(loadedSettings);
 
-    // If gasUrl exists, attempt background pull to keep data updated
+    // If gasUrl exists, validate format before attempting background pull
     if (loadedSettings.gasUrl) {
-      setIsSyncing(true);
-      StorageService.pullFromGas(loadedSettings.gasUrl)
-        .then((res) => {
-          if (res.success) {
-            if (res.students && res.students.length > 0) {
-              setStudents(res.students);
+      const validation = StorageService.validateGasUrl(loadedSettings.gasUrl);
+      if (validation.isValid) {
+        setIsSyncing(true);
+        StorageService.pullFromGas(loadedSettings.gasUrl)
+          .then((res) => {
+            if (res.success) {
+              if (res.students && res.students.length > 0) {
+                setStudents(res.students);
+              }
+              if (res.grades && res.grades.length > 0) {
+                setGrades(res.grades);
+              }
             }
-            if (res.grades && res.grades.length > 0) {
-              setGrades(res.grades);
-            }
-          }
-        })
-        .finally(() => setIsSyncing(false));
+          })
+          .catch((err) => {
+            console.warn('[Initial Sync Warning]', err);
+          })
+          .finally(() => setIsSyncing(false));
+      }
     }
   }, []);
 

@@ -11,6 +11,7 @@ import {
   Globe,
   Layers,
   Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 
 interface GasGuideModalProps {
@@ -165,6 +166,27 @@ export const GasGuideModal: React.FC<GasGuideModalProps> = ({ isOpen, onClose })
                     <strong className="text-emerald-800">웹 앱 URL 등록:</strong> 발급된 <code>https://script.google.com/macros/s/.../exec</code> 주소를 복사하여 본 웹 앱의 <code>[교사 대시보드]</code> → <code>[구글 시트 연동 설정]</code> 메뉴에 저장하면 즉시 연동됩니다!
                   </li>
                 </ol>
+              </div>
+
+              <div className="bg-amber-50 rounded-2xl p-4 border border-amber-200 space-y-2">
+                <h5 className="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>자주 발생하는 404 오류(웹 앱을 찾을 수 없음) 해결 팁</span>
+                </h5>
+                <ul className="list-disc list-inside space-y-1 text-[11px] text-amber-800">
+                  <li>
+                    <strong>구글 시트 주소 입력 금지:</strong> <code>https://docs.google.com/spreadsheets/...</code> 주소를 입력하면 안 됩니다.
+                  </li>
+                  <li>
+                    <strong>편집기 주소 입력 금지:</strong> 주소 끝이 <code>/edit</code>로 끝나면 안 되며, 반드시 배포 후 생성된 <code>/exec</code> 주소여야 합니다.
+                  </li>
+                  <li>
+                    <strong>배포 권한:</strong> 액세스 권한이 '모든 사용자(Anyone)'로 설정되어 있는지 확인하세요.
+                  </li>
+                  <li>
+                    <strong>새 배포 생성:</strong> 구글 시트에서 코드를 수정했거나 배포가 만료된 경우, <code>[배포] → [새 배포]</code>를 진행하여 새로운 웹 앱 URL을 복사해 등록하세요.
+                  </li>
+                </ul>
               </div>
             </div>
           )}
