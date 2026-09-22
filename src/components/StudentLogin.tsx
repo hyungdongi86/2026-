@@ -4,12 +4,16 @@ import { Student } from '../types';
 import { User, KeyRound, ShieldCheck, HelpCircle, ArrowRight, BookOpen, AlertCircle } from 'lucide-react';
 
 interface StudentLoginProps {
+  students?: Student[];
+  isSyncing?: boolean;
   onLoginSuccess: (student: Student) => void;
   onOpenTeacherLogin: () => void;
   onOpenGasGuide: () => void;
 }
 
 export const StudentLogin: React.FC<StudentLoginProps> = ({
+  students,
+  isSyncing = false,
   onLoginSuccess,
   onOpenTeacherLogin,
   onOpenGasGuide,
@@ -31,7 +35,20 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
       return;
     }
 
-    const matched = StorageService.verifyStudent(name, authCode);
+    const cleanedName = name.trim();
+    const cleanedCode = authCode.trim().toUpperCase();
+
+    let matched: Student | null = null;
+    if (students && students.length > 0) {
+      matched =
+        students.find(
+          (s) => s.name.trim() === cleanedName && s.authCode.trim().toUpperCase() === cleanedCode
+        ) || null;
+    }
+    if (!matched) {
+      matched = StorageService.verifyStudent(name, authCode);
+    }
+
     if (matched) {
       onLoginSuccess(matched);
     } else {
@@ -51,6 +68,12 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({
           <p className="text-emerald-100 text-xs mt-1">
             개인 인증코드로 나만의 누적 성적과 선생님 한줄평을 확인하세요.
           </p>
+          {isSyncing && (
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-emerald-100 text-[11px] backdrop-blur-xs border border-white/15 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300" />
+              <span>구글 시트 최신 성적 동기화 중...</span>
+            </div>
+          )}
         </div>
 
         {/* Form Body */}

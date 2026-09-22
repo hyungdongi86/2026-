@@ -43,6 +43,11 @@ export default function App() {
             if (res.success) {
               if (res.students && res.students.length > 0) {
                 setStudents(res.students);
+                setCurrentStudent((prev) => {
+                  if (!prev) return null;
+                  const updated = res.students?.find((s) => s.id === prev.id || s.name === prev.name);
+                  return updated || prev;
+                });
               }
               if (res.grades && res.grades.length > 0) {
                 setGrades(res.grades);
@@ -119,6 +124,8 @@ export default function App() {
       <main className="flex-1 pb-12">
         {mode === 'guest' && (
           <StudentLogin
+            students={students}
+            isSyncing={isSyncing}
             onLoginSuccess={handleStudentLoginSuccess}
             onOpenTeacherLogin={() => setIsTeacherLoginOpen(true)}
             onOpenGasGuide={() => setIsGasGuideOpen(true)}

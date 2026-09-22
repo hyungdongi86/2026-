@@ -14,8 +14,16 @@ export class StorageService {
       const data = localStorage.getItem(KEYS.SETTINGS);
       if (data) {
         const parsed = { ...INITIAL_SETTINGS, ...JSON.parse(data) };
+        let needSave = false;
         if (parsed.teacherPassword === 'teacher1234') {
           parsed.teacherPassword = '5714';
+          needSave = true;
+        }
+        if (!parsed.gasUrl || !parsed.gasUrl.trim()) {
+          parsed.gasUrl = INITIAL_SETTINGS.gasUrl;
+          needSave = true;
+        }
+        if (needSave) {
           this.saveSettings(parsed);
         }
         return parsed;
@@ -26,6 +34,9 @@ export class StorageService {
         const parsed = { ...INITIAL_SETTINGS, ...JSON.parse(oldSettings) };
         if (parsed.teacherPassword === 'teacher1234') {
           parsed.teacherPassword = '5714';
+        }
+        if (!parsed.gasUrl || !parsed.gasUrl.trim()) {
+          parsed.gasUrl = INITIAL_SETTINGS.gasUrl;
         }
         this.saveSettings(parsed);
         return parsed;

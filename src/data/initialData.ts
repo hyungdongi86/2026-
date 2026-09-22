@@ -1,11 +1,14 @@
 import { Student, GradeRecord, AppSettings } from '../types';
 
+export const DEFAULT_GAS_URL =
+  'https://script.google.com/macros/s/AKfycbyMq5G9bjqx8Y6Mct3mYpZnFMxyezPkdlg0yt-WgqK9JUni7Vg3l702olb-M3l0bWLC/exec';
+
 export const INITIAL_SETTINGS: AppSettings = {
-  gasUrl: '',
+  gasUrl: DEFAULT_GAS_URL,
   teacherPassword: '5714',
   schoolName: '부천덕산초등학교',
   className: '6학년 1반',
-  autoSync: false,
+  autoSync: true,
   lastSyncTime: '',
 };
 
